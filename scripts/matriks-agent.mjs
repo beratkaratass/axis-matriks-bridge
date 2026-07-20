@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 import { createNewOrder, encodeOrderPacket, findDemoAccount } from "./matriks-order.mjs";
 
 const VT = "\x0b";
-export const BRIDGE_VERSION = "2.2.2";
+export const BRIDGE_VERSION = "2.2.3";
 const MAX_BUFFER = 8 * 1024 * 1024;
 const MAX_REPORT_BYTES = 900_000;
 const TERMINAL_ORDER_STATUSES = new Set(["2", "4", "5", "7", "8", "C", "Z"]);
@@ -432,6 +432,7 @@ async function main() {
   const refreshMs = numberEnv("MATRIKS_REFRESH_INTERVAL_MS", 60_000, 10_000, 600_000);
   const ddeFile = path.resolve(process.env.MATRIKS_DDE_FILE || path.join("data", "matriks-dde.json"));
   const tradingFile = path.resolve(process.env.MATRIKS_TRADING_FILE || path.join("data", "matriks-agent-trading.json"));
+  const serverStatusFile = path.resolve(process.env.MATRIKS_SERVER_STATUS_FILE || path.join("data", "matriks-server-status.json"));
   const agentId = (process.env.MATRIKS_AGENT_ID || `windows-${os.hostname()}`).replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 64);
   const sessionId = randomUUID().replaceAll("-", "");
   const state = createState(agentId);
@@ -449,10 +450,19 @@ async function main() {
   let tunnelProcess = null;
   let shuttingDown = false;
   let executedCommands = [];
+  let serverStatus = { version: 1, active: false, activeAgentId: null, lastSuccessAt: null, lastError: null };
   try {
     const saved = JSON.parse(readFileSync(tradingFile, "utf8"));
     if (Array.isArray(saved?.executedCommands)) executedCommands = saved.executedCommands.filter((id) => typeof id === "string").slice(-200);
   } catch { executedCommands = []; }
+
+  const saveServerStatus = (next) => {
+    serverStatus = { ...serverStatus, ...next };
+    try {
+      mkdirSync(path.dirname(serverStatusFile), { recursive: true });
+      writeFileSync(serverStatusFile, JSON.stringify(serverStatus), "utf8");
+    } catch { /* UI status must never interrupt reporting. */ }
+  };
 
   const send = (packet) => {
     if (socket?.readyState === "open") socket.write(encodePacket(packet));
@@ -553,6 +563,12 @@ async function main() {
       catch { throw new Error("Linux server returned an invalid acknowledgement"); }
       if (acknowledgement?.ok !== true) throw new Error("Linux server rejected the report");
       const active = acknowledgement.active !== false;
+      saveServerStatus({
+        active,
+        activeAgentId: String(acknowledgement.activeAgentId || "") || null,
+        lastSuccessAt: new Date().toISOString(),
+        lastError: null,
+      });
       if (active !== lastActive) {
         console.log(active
           ? "[matriks] active bridge"
@@ -587,6 +603,7 @@ async function main() {
       lastReportError = "";
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      saveServerStatus({ lastError: message });
       if (message !== lastReportError) console.error(`[matriks] report failed: ${message}`);
       lastReportError = message;
     } finally {

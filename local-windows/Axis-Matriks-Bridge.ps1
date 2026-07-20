@@ -13,6 +13,7 @@ $installScript = Join-Path $ProjectRoot "scripts\install-matriks-bridge.ps1"
 $agent = Join-Path $ProjectRoot "scripts\matriks-agent.mjs"
 $rtd = Join-Path $ProjectRoot "scripts\matriks-rtd.mjs"
 $log = Join-Path $ProjectRoot "data\matriks-agent.log"
+$serverStatusFile = Join-Path $ProjectRoot "data\matriks-server-status.json"
 $updateFile = Join-Path $ProjectRoot "data\matriks-update.json"
 $updater = Join-Path $ProjectRoot "local-windows\Update-Matriks-Bridge.ps1"
 $taskName = "Axis Matriks Bridge"
@@ -85,7 +86,7 @@ $statusNames = [ordered]@{
   bridge = "Veri koprusu"
   dde = "Canli veri (RTD)"
   api = "Emir API"
-  server = "Sunucu tuneli"
+  server = "Sunucu baglantisi"
 }
 $y = 86
 foreach ($key in $statusNames.Keys) {
@@ -161,7 +162,24 @@ function Refresh-Status {
     Set-State "bridge" ([bool]($owned | Where-Object { $_.Name -eq "node.exe" -and $_.CommandLine -match [regex]::Escape($agent) })) "CALISIYOR"
     Set-State "dde" (Test-LocalPort 8948) "BAGLI"
     Set-State "api" (Test-LocalPort 18890) "BAGLI"
-    Set-State "server" (Test-LocalPort 13100) "BAGLI"
+    $serverStatus = $null
+    $serverStatusReadable = $true
+    if (Test-Path -LiteralPath $serverStatusFile) {
+      try { $serverStatus = Get-Content -LiteralPath $serverStatusFile -Raw -Encoding UTF8 | ConvertFrom-Json }
+      catch { $serverStatusReadable = $false }
+    }
+    $serverFresh = $serverStatus -and $serverStatus.lastSuccessAt -and
+      (([DateTime]::UtcNow - [DateTime]::Parse($serverStatus.lastSuccessAt).ToUniversalTime()).TotalSeconds -lt 20)
+    if (-not $serverStatusReadable) {
+      # Keep the last visible state if a write is caught between truncate and flush.
+    } elseif ($serverFresh -and $serverStatus.active) {
+      Set-State "server" $true "AKTIF"
+    } elseif ($serverFresh) {
+      $statusLabels.server.Text = "YEDEK"
+      $statusLabels.server.ForeColor = [Drawing.Color]::Gold
+    } else {
+      Set-State "server" $false
+    }
     $script:updating = $true
     $autoStart.Checked = [bool](Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue)
     $updateButton.Enabled = (Test-Path -LiteralPath $updateFile) -and (Test-Path -LiteralPath $updater)
@@ -171,14 +189,6 @@ function Refresh-Status {
       $logBox.Text = ($lines -join "`r`n") + "`r`n`r`n"
       $logBox.SelectionStart = $logBox.TextLength
       $logBox.ScrollToCaret()
-      $role = $lines | Where-Object { $_ -match '^\[matriks\] (active bridge|standby bridge)' } | Select-Object -Last 1
-      if ($role -match 'active bridge') {
-        $statusLabels.server.Text = "AKTIF"
-        $statusLabels.server.ForeColor = [Drawing.Color]::MediumSpringGreen
-      } elseif ($role -match 'standby bridge') {
-        $statusLabels.server.Text = "YEDEK"
-        $statusLabels.server.ForeColor = [Drawing.Color]::Gold
-      }
     }
     $updated.Text = "Son kontrol: $(Get-Date -Format 'HH:mm:ss')"
   } catch {
