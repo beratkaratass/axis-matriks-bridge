@@ -204,6 +204,7 @@ $logButton.Add_Click({
 })
 $updateButton.Add_Click({
   if (-not $updateButton.Enabled) { return }
+  Stop-Bridge
   Start-Process -FilePath $powershell -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$updater`" -ProjectRoot `"$ProjectRoot`"" -WorkingDirectory $ProjectRoot
   $form.Close()
 })
