@@ -28,10 +28,8 @@ try {
     Copy-Item -LiteralPath $source -Destination (Join-Path $ProjectRoot $relative) -Force
   }
   Remove-Item -LiteralPath $updateFile -Force
-  $start = Join-Path $ProjectRoot "scripts\start-matriks-bridge.ps1"
-  Start-Process powershell.exe -ArgumentList "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$start`" -ProjectRoot `"$ProjectRoot`"" -WorkingDirectory $ProjectRoot -WindowStyle Hidden
-  Start-Sleep -Seconds 1
-  Start-Process powershell.exe -ArgumentList "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $ProjectRoot 'local-windows\Axis-Matriks-Bridge.ps1')`"" -WorkingDirectory $ProjectRoot -WindowStyle Hidden
+  & (Join-Path $ProjectRoot "scripts\install-matriks-bridge.ps1") | Out-Null
+  Start-Process wscript.exe -ArgumentList "`"$(Join-Path $ProjectRoot 'local-windows\Axis-Matriks-Bridge.vbs')`"" -WorkingDirectory $ProjectRoot
 } finally {
   Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue

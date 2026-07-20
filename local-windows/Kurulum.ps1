@@ -70,9 +70,9 @@ $envFile = Join-Path $root ".env.matriks"
 & (Join-Path $root "scripts\install-matriks-bridge.ps1")
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Axis Matriks.lnk"))
-$shortcut.TargetPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-$shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $PSScriptRoot 'Axis-Matriks-Bridge.ps1')`""
+$shortcut.TargetPath = "$env:SystemRoot\System32\wscript.exe"
+$shortcut.Arguments = "`"$(Join-Path $PSScriptRoot 'Axis-Matriks-Bridge.vbs')`""
 $shortcut.WorkingDirectory = $root
 $shortcut.Save()
-Start-Process -FilePath $shortcut.TargetPath -ArgumentList $shortcut.Arguments -WorkingDirectory $root -WindowStyle Hidden
+Start-Process -FilePath $shortcut.TargetPath -ArgumentList $shortcut.Arguments -WorkingDirectory $root
 Write-Host "Kurulum tamamlandi. Bu bilgisayar otomatik olarak aktif veya yedek olur."

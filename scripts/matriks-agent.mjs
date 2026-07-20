@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 import { createNewOrder, encodeOrderPacket, findDemoAccount } from "./matriks-order.mjs";
 
 const VT = "\x0b";
-export const BRIDGE_VERSION = "2.2.0";
+export const BRIDGE_VERSION = "2.2.1";
 const MAX_BUFFER = 8 * 1024 * 1024;
 const MAX_REPORT_BYTES = 900_000;
 const TERMINAL_ORDER_STATUSES = new Set(["2", "4", "5", "7", "8", "C", "Z"]);

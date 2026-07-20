@@ -213,6 +213,13 @@ $autoStart.Add_CheckedChanged({
 
 $timer = [Windows.Forms.Timer]@{ Interval = 3000 }
 $timer.Add_Tick({ Refresh-Status })
-$form.Add_Shown({ Refresh-Status; $timer.Start() })
+$form.Add_Shown({
+  if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+    try { & $installScript -TaskName $taskName | Out-Null } catch { $updated.Text = "Baslangic gorevi hatasi: $($_.Exception.Message)" }
+  }
+  if (-not (Get-OwnedProcesses | Where-Object { $_.Name -eq "node.exe" -and $_.CommandLine -match [regex]::Escape($agent) })) { Start-Bridge }
+  Refresh-Status
+  $timer.Start()
+})
 $form.Add_FormClosed({ $timer.Stop(); $timer.Dispose() })
 [Windows.Forms.Application]::Run($form)
