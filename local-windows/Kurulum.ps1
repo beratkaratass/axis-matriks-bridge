@@ -68,11 +68,5 @@ $envFile = Join-Path $root ".env.matriks"
 & icacls.exe $envFile "/inheritance:r" "/grant:r" "$([Security.Principal.WindowsIdentity]::GetCurrent().Name):(F)" | Out-Null
 
 & (Join-Path $root "scripts\install-matriks-bridge.ps1")
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Axis Matriks.lnk"))
-$shortcut.TargetPath = "$env:SystemRoot\System32\wscript.exe"
-$shortcut.Arguments = "`"$(Join-Path $PSScriptRoot 'Axis-Matriks-Bridge.vbs')`""
-$shortcut.WorkingDirectory = $root
-$shortcut.Save()
-Start-Process -FilePath $shortcut.TargetPath -ArgumentList $shortcut.Arguments -WorkingDirectory $root
+Start-Process -FilePath (Join-Path $PSScriptRoot "Axis-Matriks-Bridge.exe") -WorkingDirectory $root
 Write-Host "Kurulum tamamlandi. Bu bilgisayar otomatik olarak aktif veya yedek olur."

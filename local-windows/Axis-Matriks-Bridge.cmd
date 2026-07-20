@@ -1,1 +1,1 @@
-@start "" wscript.exe "%~dp0Axis-Matriks-Bridge.vbs"
+@start "" "%~dp0Axis-Matriks-Bridge.exe"

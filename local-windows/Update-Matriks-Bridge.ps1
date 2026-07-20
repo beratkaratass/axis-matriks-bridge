@@ -29,7 +29,7 @@ try {
   }
   Remove-Item -LiteralPath $updateFile -Force
   & (Join-Path $ProjectRoot "scripts\install-matriks-bridge.ps1") | Out-Null
-  Start-Process wscript.exe -ArgumentList "`"$(Join-Path $ProjectRoot 'local-windows\Axis-Matriks-Bridge.vbs')`"" -WorkingDirectory $ProjectRoot
+  Start-Process (Join-Path $ProjectRoot "local-windows\Axis-Matriks-Bridge.exe") -WorkingDirectory $ProjectRoot
 } finally {
   Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
   Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
